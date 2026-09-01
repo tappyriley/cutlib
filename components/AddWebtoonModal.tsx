@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { supabase, uploadImage } from "@/lib/supabase";
 
 interface Props {
@@ -8,20 +8,71 @@ interface Props {
   onSuccess: () => void;
 }
 
+interface SearchResult {
+  slug: string;
+  title: string;
+}
+
 export default function AddWebtoonModal({ onClose, onSuccess }: Props) {
   const [title, setTitle] = useState("");
   const [registeredBy, setRegisteredBy] = useState("");
   const [thumbnail, setThumbnail] = useState<File | null>(null);
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
+  const [externalThumbnailUrl, setExternalThumbnailUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const [tappySearch, setTappySearch] = useState("");
+  const [tappyResults, setTappyResults] = useState<SearchResult[]>([]);
+  const [tappyLoading, setTappyLoading] = useState(false);
+  const [tappyOpen, setTappyOpen] = useState(false);
+
+  useEffect(() => {
+    if (!tappySearch.trim()) {
+      setTappyResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setTappyLoading(true);
+      try {
+        const res = await fetch(`/api/tappytoon/search?q=${encodeURIComponent(tappySearch)}`);
+        const data = await res.json();
+        setTappyResults(data.results || []);
+      } catch {
+        setTappyResults([]);
+      } finally {
+        setTappyLoading(false);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [tappySearch]);
+
+  const selectTappyResult = async (result: SearchResult) => {
+    setTappyOpen(false);
+    setTappySearch(result.title);
+    setTappyLoading(true);
+    try {
+      const res = await fetch(`/api/tappytoon/book?slug=${result.slug}`);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setTitle(data.title);
+      setThumbnail(null);
+      setExternalThumbnailUrl(data.thumbnailUrl);
+      setThumbnailPreview(data.thumbnailUrl);
+    } catch (err: any) {
+      setError(err.message || "작품 정보를 불러오지 못했어요");
+    } finally {
+      setTappyLoading(false);
+    }
+  };
 
   const handleFile = (file: File) => {
     if (!file.type.startsWith("image/")) {
       setError("이미지 파일만 업로드할 수 있어요");
       return;
     }
+    setExternalThumbnailUrl(null);
     setThumbnail(file);
     setThumbnailPreview(URL.createObjectURL(file));
   };
@@ -41,7 +92,7 @@ export default function AddWebtoonModal({ onClose, onSuccess }: Props) {
     setError("");
 
     try {
-      let thumbnailUrl: string | null = null;
+      let thumbnailUrl: string | null = externalThumbnailUrl;
       if (thumbnail) {
         const path = `${Date.now()}_${thumbnail.name.replace(/\s/g, "_")}`;
         thumbnailUrl = await uploadImage("webtoon-thumbnails", thumbnail, path);
@@ -84,6 +135,43 @@ export default function AddWebtoonModal({ onClose, onSuccess }: Props) {
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {/* Tappytoon 검색 */}
+          <div className="relative">
+            <label className="block text-xs font-semibold text-ink-muted mb-1.5">
+              Tappytoon에서 찾기 <span className="text-ink-faint font-normal">(선택)</span>
+            </label>
+            <input
+              type="text"
+              value={tappySearch}
+              onChange={(e) => {
+                setTappySearch(e.target.value);
+                setTappyOpen(true);
+              }}
+              onFocus={() => setTappyOpen(true)}
+              onBlur={() => setTimeout(() => setTappyOpen(false), 150)}
+              placeholder="작품명으로 검색…"
+              className="w-full px-3 py-2.5 border border-border rounded-lg text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition"
+            />
+            {tappyOpen && (tappyLoading || tappyResults.length > 0) && (
+              <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-border rounded-lg shadow-md z-10 overflow-hidden max-h-56 overflow-y-auto">
+                {tappyLoading && (
+                  <p className="px-3 py-2 text-xs text-ink-faint">검색 중…</p>
+                )}
+                {!tappyLoading &&
+                  tappyResults.map((r) => (
+                    <button
+                      key={r.slug}
+                      type="button"
+                      onMouseDown={() => selectTappyResult(r)}
+                      className="w-full text-left px-3 py-2 text-sm text-ink hover:bg-surface-2 transition-colors"
+                    >
+                      {r.title}
+                    </button>
+                  ))}
+              </div>
+            )}
+          </div>
+
           {/* 작품명 */}
           <div>
             <label className="block text-xs font-semibold text-ink-muted mb-1.5">
@@ -136,6 +224,7 @@ export default function AddWebtoonModal({ onClose, onSuccess }: Props) {
                       e.stopPropagation();
                       setThumbnail(null);
                       setThumbnailPreview(null);
+                      setExternalThumbnailUrl(null);
                     }}
                     className="absolute -top-2 -right-2 w-6 h-6 bg-accent text-white rounded-full text-xs flex items-center justify-center hover:bg-accent-hover"
                   >
