@@ -20,9 +20,11 @@ create table if not exists cuts (
   episode       integer,
   tags          text[] default '{}',
   memo          text,
-  uploader_name text not null,
+  uploader_name text,
   created_at    timestamptz default now() not null
 );
+
+alter table cuts alter column uploader_name drop not null;
 
 -- 3. 인덱스 (검색 성능)
 create index if not exists cuts_webtoon_id_idx on cuts(webtoon_id);
@@ -42,4 +44,21 @@ create policy "public_all_cuts"     on cuts     for all using (true) with check 
 -- Storage 버킷은 Supabase 대시보드에서 직접 만드세요:
 --   Storage > New bucket > "webtoon-thumbnails" (Public 체크)
 --   Storage > New bucket > "cut-images"         (Public 체크)
+--
+-- ⚠️ "Public" 체크는 읽기(공개 URL) 권한만 부여합니다.
+-- 업로드(insert)를 허용하려면 storage.objects 에도 정책이 필요합니다:
 -- =============================================
+
+drop policy if exists "public_insert_webtoon_thumbnails" on storage.objects;
+drop policy if exists "public_insert_cut_images" on storage.objects;
+drop policy if exists "public_read_webtoon_thumbnails" on storage.objects;
+drop policy if exists "public_read_cut_images" on storage.objects;
+
+create policy "public_insert_webtoon_thumbnails" on storage.objects
+  for insert to public with check (bucket_id = 'webtoon-thumbnails');
+create policy "public_insert_cut_images" on storage.objects
+  for insert to public with check (bucket_id = 'cut-images');
+create policy "public_read_webtoon_thumbnails" on storage.objects
+  for select to public using (bucket_id = 'webtoon-thumbnails');
+create policy "public_read_cut_images" on storage.objects
+  for select to public using (bucket_id = 'cut-images');
