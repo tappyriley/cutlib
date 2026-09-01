@@ -77,7 +77,8 @@ export default function UploadCutModal({
 
     try {
       for (const file of files) {
-        const path = `${webtoonId}/${Date.now()}_${file.name.replace(/\s/g, "_")}`;
+        const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+        const path = `${webtoonId}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
         const imageUrl = await uploadImage("cut-images", file, path);
 
         const { error: dbError } = await supabase.from("cuts").insert({
