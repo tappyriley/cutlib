@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { picks } from "@/lib/supabase";
+import { picks, downloadImage } from "@/lib/supabase";
 import type { Cut } from "@/types";
 
 interface Props {
@@ -40,12 +40,7 @@ export default function Lightbox({ cut, onClose, onPrev, onNext, hasPrev, hasNex
     const tag = cut.tags[0] ? `_${cut.tags[0]}` : "";
     const ep = cut.episode ? `_${cut.episode}화` : "";
     const filename = `컷${ep}${tag}.jpg`;
-    const a = document.createElement("a");
-    a.href = cut.image_url;
-    a.download = filename;
-    a.target = "_blank";
-    a.rel = "noopener noreferrer";
-    a.click();
+    downloadImage(cut.image_url, filename);
   };
 
   return (

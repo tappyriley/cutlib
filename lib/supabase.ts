@@ -21,6 +21,18 @@ export async function uploadImage(
   return data.publicUrl;
 }
 
+// 이미지 강제 다운로드 (cross-origin URL은 <a download>가 무시되므로 blob으로 받아서 저장)
+export async function downloadImage(url: string, filename: string) {
+  const res = await fetch(url);
+  const blob = await res.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = blobUrl;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(blobUrl);
+}
+
 // 즐겨찾기(픽) — localStorage 기반
 export const picks = {
   get(): string[] {

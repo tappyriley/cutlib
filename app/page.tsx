@@ -36,6 +36,17 @@ export default function HomePage() {
     w.title.toLowerCase().includes(search.toLowerCase())
   );
 
+  const handleDelete = async (e: React.MouseEvent, webtoon: Webtoon) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!confirm(`"${webtoon.title}"을(를) 삭제할까요? 등록된 컷도 모두 함께 삭제됩니다.`)) return;
+
+    const { error } = await supabase.from("webtoons").delete().eq("id", webtoon.id);
+    if (!error) {
+      setWebtoons((prev) => prev.filter((w) => w.id !== webtoon.id));
+    }
+  };
+
   return (
     <div className="animate-fade-in">
       {/* 헤더 영역 */}
@@ -128,6 +139,16 @@ export default function HomePage() {
                 <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs font-semibold px-2 py-0.5 rounded-full backdrop-blur-sm">
                   {webtoon.cut_count ?? 0}컷
                 </div>
+                {/* 삭제 버튼 (호버 시) */}
+                <button
+                  onClick={(e) => handleDelete(e, webtoon)}
+                  className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/90 flex items-center justify-center shadow-md text-ink-faint hover:text-accent opacity-0 group-hover:opacity-100 transition-opacity"
+                  title="작품 삭제"
+                >
+                  <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M2 4h10M5.5 4V2.5a1 1 0 011-1h1a1 1 0 011 1V4M11 4l-.5 8a1 1 0 01-1 .9h-5a1 1 0 01-1-.9L3 4"/>
+                  </svg>
+                </button>
               </div>
               {/* 정보 */}
               <div className="p-3">
