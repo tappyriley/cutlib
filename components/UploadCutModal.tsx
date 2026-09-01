@@ -22,7 +22,6 @@ export default function UploadCutModal({
   const [tagInput, setTagInput] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [memo, setMemo] = useState("");
-  const [uploaderName, setUploaderName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -70,7 +69,6 @@ export default function UploadCutModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (files.length === 0) { setError("컷 이미지를 1장 이상 선택해주세요"); return; }
-    if (!uploaderName.trim()) { setError("업로더 이름을 입력해주세요"); return; }
 
     setLoading(true);
     setError("");
@@ -87,7 +85,7 @@ export default function UploadCutModal({
           episode: episode ? parseInt(episode) : null,
           tags,
           memo: memo.trim() || null,
-          uploader_name: uploaderName.trim(),
+          uploader_name: null,
         });
 
         if (dbError) throw dbError;
@@ -169,20 +167,6 @@ export default function UploadCutModal({
                   ))}
                 </div>
               )}
-            </div>
-
-            {/* 업로더 이름 */}
-            <div>
-              <label className="block text-xs font-semibold text-ink-muted mb-1.5">
-                업로더 이름 <span className="text-accent">*</span>
-              </label>
-              <input
-                type="text"
-                value={uploaderName}
-                onChange={(e) => setUploaderName(e.target.value)}
-                placeholder="예: Riley"
-                className="w-full px-3 py-2.5 border border-border rounded-lg text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition"
-              />
             </div>
 
             {/* 화수 */}
