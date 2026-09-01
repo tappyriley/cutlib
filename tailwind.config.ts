@@ -10,13 +10,13 @@ const config: Config = {
     extend: {
       colors: {
         accent: {
-          DEFAULT: "#E6253A",
-          hover: "#C81F30",
-          soft: "#FFF0F2",
+          DEFAULT: "#0BCC99",
+          hover: "#09B387",
+          soft: "#EDFAF6",
         },
         surface: {
           DEFAULT: "#FFFFFF",
-          2: "#F6F4F9",
+          2: "#F4FBF9",
         },
         ink: {
           DEFAULT: "#18181F",
