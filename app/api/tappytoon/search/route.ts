@@ -13,7 +13,7 @@ async function fetchCatalog() {
   const res = await fetch(SITEMAP_URL, { next: { revalidate: 86400 } });
   if (!res.ok) throw new Error("사이트맵을 불러오지 못했어요");
   const xml = await res.text();
-  const slugs = [...xml.matchAll(/\/en\/book\/([a-z0-9-]+)</g)].map((m) => m[1]);
+  const slugs = Array.from(xml.matchAll(/\/en\/book\/([a-z0-9-]+)</g)).map((m) => m[1]);
   return Array.from(new Set(slugs));
 }
 
