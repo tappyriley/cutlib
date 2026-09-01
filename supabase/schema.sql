@@ -8,9 +8,11 @@ create table if not exists webtoons (
   id           uuid default gen_random_uuid() primary key,
   title        text not null,
   thumbnail_url text,
-  registered_by text not null,
+  registered_by text,
   created_at   timestamptz default now() not null
 );
+
+alter table webtoons alter column registered_by drop not null;
 
 -- 2. 컷 테이블
 create table if not exists cuts (
