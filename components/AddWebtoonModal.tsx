@@ -15,7 +15,6 @@ interface SearchResult {
 
 export default function AddWebtoonModal({ onClose, onSuccess }: Props) {
   const [title, setTitle] = useState("");
-  const [registeredBy, setRegisteredBy] = useState("");
   const [thumbnail, setThumbnail] = useState<File | null>(null);
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
   const [externalThumbnailUrl, setExternalThumbnailUrl] = useState<string | null>(null);
@@ -86,7 +85,6 @@ export default function AddWebtoonModal({ onClose, onSuccess }: Props) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) { setError("작품명을 입력해주세요"); return; }
-    if (!registeredBy.trim()) { setError("등록자 이름을 입력해주세요"); return; }
 
     setLoading(true);
     setError("");
@@ -100,7 +98,7 @@ export default function AddWebtoonModal({ onClose, onSuccess }: Props) {
 
       const { error: dbError } = await supabase.from("webtoons").insert({
         title: title.trim(),
-        registered_by: registeredBy.trim(),
+        registered_by: null,
         thumbnail_url: thumbnailUrl,
       });
 
@@ -182,20 +180,6 @@ export default function AddWebtoonModal({ onClose, onSuccess }: Props) {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="예: 나 혼자만 레벨업"
-              className="w-full px-3 py-2.5 border border-border rounded-lg text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition"
-            />
-          </div>
-
-          {/* 등록자 이름 */}
-          <div>
-            <label className="block text-xs font-semibold text-ink-muted mb-1.5">
-              등록자 이름 <span className="text-accent">*</span>
-            </label>
-            <input
-              type="text"
-              value={registeredBy}
-              onChange={(e) => setRegisteredBy(e.target.value)}
-              placeholder="예: Riley"
               className="w-full px-3 py-2.5 border border-border rounded-lg text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition"
             />
           </div>

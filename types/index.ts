@@ -2,7 +2,7 @@ export interface Webtoon {
   id: string;
   title: string;
   thumbnail_url: string | null;
-  registered_by: string;
+  registered_by: string | null;
   created_at: string;
   cut_count?: number;
 }
