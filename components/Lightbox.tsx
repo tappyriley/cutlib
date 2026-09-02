@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { picks, downloadImage } from "@/lib/supabase";
-import type { Cut } from "@/types";
+import { picks, downloadImage, supabase } from "@/lib/supabase";
+import type { Cut, Comment } from "@/types";
 
 interface Props {
   cut: Cut;
@@ -11,14 +11,53 @@ interface Props {
   onNext: () => void;
   hasPrev: boolean;
   hasNext: boolean;
+  onDelete: (id: string) => void;
 }
 
-export default function Lightbox({ cut, onClose, onPrev, onNext, hasPrev, hasNext }: Props) {
+export default function Lightbox({ cut, onClose, onPrev, onNext, hasPrev, hasNext, onDelete }: Props) {
   const [isPicked, setIsPicked] = useState(false);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(true);
+  const [commentText, setCommentText] = useState("");
+  const [commentSubmitting, setCommentSubmitting] = useState(false);
 
   useEffect(() => {
     setIsPicked(picks.has(cut.id));
   }, [cut.id]);
+
+  useEffect(() => {
+    let active = true;
+    setCommentsLoading(true);
+    supabase
+      .from("comments")
+      .select("*")
+      .eq("cut_id", cut.id)
+      .order("created_at", { ascending: true })
+      .then(({ data }) => {
+        if (!active) return;
+        setComments(data || []);
+        setCommentsLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [cut.id]);
+
+  const submitComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!commentText.trim()) return;
+    setCommentSubmitting(true);
+    const { data, error } = await supabase
+      .from("comments")
+      .insert({ cut_id: cut.id, content: commentText.trim() })
+      .select()
+      .single();
+    if (!error && data) {
+      setComments((prev) => [...prev, data]);
+      setCommentText("");
+    }
+    setCommentSubmitting(false);
+  };
 
   // 키보드 단축키
   useEffect(() => {
@@ -78,7 +117,7 @@ export default function Lightbox({ cut, onClose, onPrev, onNext, hasPrev, hasNex
         </div>
 
         {/* 사이드 패널 */}
-        <div className="bg-white rounded-xl shadow-xl p-5 w-full md:w-64 shrink-0 space-y-4">
+        <div className="bg-white rounded-xl shadow-xl p-5 w-full md:w-64 shrink-0 space-y-4 max-h-[85vh] overflow-y-auto">
           {/* 닫기 */}
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-ink-muted uppercase tracking-wider">
@@ -131,6 +170,50 @@ export default function Lightbox({ cut, onClose, onPrev, onNext, hasPrev, hasNex
             </div>
           )}
 
+          {/* 댓글 */}
+          <div>
+            <p className="text-xs text-ink-faint mb-1.5">
+              댓글{comments.length > 0 ? ` (${comments.length})` : ""}
+            </p>
+            <div className="space-y-1.5 max-h-32 overflow-y-auto mb-2">
+              {commentsLoading ? (
+                <p className="text-xs text-ink-faint">불러오는 중…</p>
+              ) : comments.length === 0 ? (
+                <p className="text-xs text-ink-faint">아직 댓글이 없어요</p>
+              ) : (
+                comments.map((c) => (
+                  <div key={c.id} className="bg-surface-2 rounded-lg px-2.5 py-1.5">
+                    <p className="text-xs text-ink leading-relaxed break-words">{c.content}</p>
+                    <p className="text-[10px] text-ink-faint mt-0.5">
+                      {new Date(c.created_at).toLocaleString("ko-KR", {
+                        month: "numeric",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
+            <form onSubmit={submitComment} className="flex gap-1.5">
+              <input
+                type="text"
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                placeholder="댓글을 남겨보세요"
+                className="flex-1 min-w-0 px-2.5 py-1.5 border border-border rounded-lg text-xs text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition"
+              />
+              <button
+                type="submit"
+                disabled={commentSubmitting || !commentText.trim()}
+                className="px-3 py-1.5 bg-accent hover:bg-accent-hover disabled:opacity-50 text-white rounded-lg text-xs font-semibold transition-colors shrink-0"
+              >
+                등록
+              </button>
+            </form>
+          </div>
+
           {/* 액션 */}
           <div className="space-y-2 pt-1">
             <button
@@ -148,6 +231,12 @@ export default function Lightbox({ cut, onClose, onPrev, onNext, hasPrev, hasNex
               className="w-full py-2 rounded-lg text-sm font-medium bg-surface-2 text-ink-muted hover:bg-border transition-colors flex items-center justify-center gap-2"
             >
               ↓ 다운로드
+            </button>
+            <button
+              onClick={() => onDelete(cut.id)}
+              className="w-full py-2 rounded-lg text-sm font-medium bg-surface-2 text-ink-faint hover:bg-accent-soft hover:text-accent transition-colors flex items-center justify-center gap-2"
+            >
+              🗑 삭제
             </button>
           </div>
 

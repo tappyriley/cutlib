@@ -7,9 +7,10 @@ import type { Cut } from "@/types";
 interface Props {
   cut: Cut;
   onClick: () => void;
+  onDelete: (id: string) => void;
 }
 
-export default function CutCard({ cut, onClick }: Props) {
+export default function CutCard({ cut, onClick, onDelete }: Props) {
   const [isPicked, setIsPicked] = useState(false);
 
   useEffect(() => {
@@ -28,6 +29,11 @@ export default function CutCard({ cut, onClick }: Props) {
     const ep = cut.episode ? `_${cut.episode}화` : "";
     const filename = `컷${ep}${tag}.jpg`;
     downloadImage(cut.image_url, filename);
+  };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDelete(cut.id);
   };
 
   return (
@@ -76,6 +82,17 @@ export default function CutCard({ cut, onClick }: Props) {
           >
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M7 1v8M4 6l3 3 3-3M1 10v1.5A1.5 1.5 0 002.5 13h9a1.5 1.5 0 001.5-1.5V10"/>
+            </svg>
+          </button>
+
+          {/* 삭제 */}
+          <button
+            onClick={handleDelete}
+            className="w-8 h-8 rounded-full bg-white/90 flex items-center justify-center shadow-md text-ink-faint hover:text-accent transition-colors"
+            title="삭제"
+          >
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M2 4h10M5.5 4V2.5a1 1 0 011-1h1a1 1 0 011 1V4M11 4l-.5 8a1 1 0 01-1 .9h-5a1 1 0 01-1-.9L3 4"/>
             </svg>
           </button>
         </div>
