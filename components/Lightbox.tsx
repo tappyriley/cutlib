@@ -78,8 +78,7 @@ export default function Lightbox({ cut, onClose, onPrev, onNext, hasPrev, hasNex
   const download = () => {
     const tag = cut.tags[0] ? `_${cut.tags[0]}` : "";
     const ep = cut.episode ? `_${cut.episode}화` : "";
-    const filename = `컷${ep}${tag}.jpg`;
-    downloadImage(cut.image_url, filename);
+    downloadImage(cut.image_url, `컷${ep}${tag}`);
   };
 
   return (

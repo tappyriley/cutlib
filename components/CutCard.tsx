@@ -27,8 +27,7 @@ export default function CutCard({ cut, onClick, onDelete }: Props) {
     e.stopPropagation();
     const tag = cut.tags[0] ? `_${cut.tags[0]}` : "";
     const ep = cut.episode ? `_${cut.episode}화` : "";
-    const filename = `컷${ep}${tag}.jpg`;
-    downloadImage(cut.image_url, filename);
+    downloadImage(cut.image_url, `컷${ep}${tag}`);
   };
 
   const handleDelete = (e: React.MouseEvent) => {
