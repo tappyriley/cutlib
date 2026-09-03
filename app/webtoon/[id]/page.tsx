@@ -52,6 +52,16 @@ export default function WebtoonPage() {
     ? cuts.filter((c) => c.tags.includes(selectedTag))
     : cuts;
 
+  const handleDeleteCut = async (cutId: string) => {
+    if (!confirm("이 컷을 삭제할까요?")) return;
+    const { error } = await supabase.from("cuts").delete().eq("id", cutId);
+    if (error) return;
+    const next = cuts.filter((c) => c.id !== cutId);
+    setCuts(next);
+    setAllTags(Array.from(new Set(next.flatMap((c) => c.tags))).filter(Boolean));
+    setLightboxCut((prev) => (prev?.id === cutId ? null : prev));
+  };
+
   const copyLink = () => {
     navigator.clipboard.writeText(window.location.href);
     setCopied(true);
@@ -210,6 +220,7 @@ export default function WebtoonPage() {
               key={cut.id}
               cut={cut}
               onClick={() => setLightboxCut(cut)}
+              onDelete={handleDeleteCut}
             />
           ))}
         </div>
@@ -246,6 +257,7 @@ export default function WebtoonPage() {
             filteredCuts.findIndex((c) => c.id === lightboxCut.id) <
             filteredCuts.length - 1
           }
+          onDelete={handleDeleteCut}
         />
       )}
     </div>

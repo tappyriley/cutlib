@@ -17,3 +17,10 @@ export interface Cut {
   uploader_name: string;
   created_at: string;
 }
+
+export interface Comment {
+  id: string;
+  cut_id: string;
+  content: string;
+  created_at: string;
+}

@@ -28,19 +28,31 @@ create table if not exists cuts (
 
 alter table cuts alter column uploader_name drop not null;
 
--- 3. 인덱스 (검색 성능)
+-- 3. 댓글 테이블 (계정 없이 누구나 작성 가능)
+create table if not exists comments (
+  id         uuid default gen_random_uuid() primary key,
+  cut_id     uuid references cuts(id) on delete cascade not null,
+  content    text not null,
+  created_at timestamptz default now() not null
+);
+
+-- 4. 인덱스 (검색 성능)
 create index if not exists cuts_webtoon_id_idx on cuts(webtoon_id);
 create index if not exists cuts_created_at_idx on cuts(created_at desc);
+create index if not exists comments_cut_id_idx on comments(cut_id);
 
--- 4. RLS (Row Level Security) — 링크 공유 방식, 누구나 읽기/쓰기 가능
+-- 5. RLS (Row Level Security) — 링크 공유 방식, 누구나 읽기/쓰기 가능
 alter table webtoons enable row level security;
 alter table cuts     enable row level security;
+alter table comments enable row level security;
 
 drop policy if exists "public_all_webtoons" on webtoons;
 drop policy if exists "public_all_cuts" on cuts;
+drop policy if exists "public_all_comments" on comments;
 
 create policy "public_all_webtoons" on webtoons for all using (true) with check (true);
 create policy "public_all_cuts"     on cuts     for all using (true) with check (true);
+create policy "public_all_comments" on comments for all using (true) with check (true);
 
 -- =============================================
 -- Storage 버킷은 Supabase 대시보드에서 직접 만드세요:
