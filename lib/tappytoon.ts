@@ -4,7 +4,8 @@
 //
 // 작품 페이지는 366KB쯤 되지만 og: 태그는 앞부분 10KB 안에 있습니다. 그래서
 // 응답 스트림을 앞에서부터 읽다가 태그를 찾으면 끊습니다. 서버가 Range 요청은
-// 무시하므로 이 방법밖에 없고, 실제 절약량은 청크 크기에 따라 달라집니다.
+// 무시하므로 이 방법밖에 없습니다. 서버 런타임에서는 첫 청크 16KB에 태그가
+// 모두 들어 있어 작품당 16KB만 받습니다.
 
 const SITEMAP_URL = "https://www.tappytoon.com/sitemap-series.xml";
 const BOOK_URL = (slug: string) => `https://www.tappytoon.com/en/book/${slug}`;
@@ -79,7 +80,7 @@ async function fetchPageHead(url: string): Promise<string> {
   try {
     while (received < META_READ_LIMIT_BYTES) {
       const { done, value } = await reader.read();
-      if (done) break;
+      if (done || !value) break;
 
       received += value.length;
       html += decoder.decode(value, { stream: true });
