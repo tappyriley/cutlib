@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  --scrollbar-thumb: #d4d0e0;
+  --scrollbar-thumb: #d4d4d4;
 }
 
 * {
@@ -15,8 +15,8 @@ html {
 }
 
 body {
-  background-color: #F4FBF9;
-  color: #18181F;
+  background-color: #F7F7F7;
+  color: #0F0F0F;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

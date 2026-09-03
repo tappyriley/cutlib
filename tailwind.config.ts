@@ -16,14 +16,14 @@ const config: Config = {
         },
         surface: {
           DEFAULT: "#FFFFFF",
-          2: "#F4FBF9",
+          2: "#F7F7F7",
         },
         ink: {
-          DEFAULT: "#18181F",
-          muted: "#64647A",
-          faint: "#9898B2",
+          DEFAULT: "#0F0F0F",
+          muted: "#565859",
+          faint: "#9A9A9A",
         },
-        border: "#E4E1ED",
+        border: "#E5E5E5",
       },
       fontFamily: {
         sans: [
