@@ -6,14 +6,18 @@ import { supabase, uploadImage } from "@/lib/supabase";
 interface Props {
   onClose: () => void;
   onSuccess: () => void;
+  existingTitles: string[];
 }
 
 interface SearchResult {
   slug: string;
   title: string;
+  thumbnailUrl: string | null;
 }
 
-export default function AddWebtoonModal({ onClose, onSuccess }: Props) {
+const normalize = (t: string) => t.trim().toLowerCase();
+
+export default function AddWebtoonModal({ onClose, onSuccess, existingTitles }: Props) {
   const [title, setTitle] = useState("");
   const [thumbnail, setThumbnail] = useState<File | null>(null);
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
@@ -25,44 +29,96 @@ export default function AddWebtoonModal({ onClose, onSuccess }: Props) {
   const [tappySearch, setTappySearch] = useState("");
   const [tappyResults, setTappyResults] = useState<SearchResult[]>([]);
   const [tappyLoading, setTappyLoading] = useState(false);
+  const [tappyError, setTappyError] = useState("");
   const [tappyOpen, setTappyOpen] = useState(false);
+  const [tappyActive, setTappyActive] = useState(0);
+  const [importedFrom, setImportedFrom] = useState<SearchResult | null>(null);
+  const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  const registered = new Set(existingTitles.map(normalize));
+  const isDuplicate = title.trim().length > 0 && registered.has(normalize(title));
 
   useEffect(() => {
-    if (!tappySearch.trim()) {
+    const query = tappySearch.trim();
+    if (!query) {
       setTappyResults([]);
+      setTappyError("");
       return;
     }
+
+    // 느린 이전 요청이 나중에 도착해 최신 결과를 덮어쓰지 않도록 막습니다.
+    let active = true;
     const timer = setTimeout(async () => {
       setTappyLoading(true);
+      setTappyError("");
       try {
-        const res = await fetch(`/api/tappytoon/search?q=${encodeURIComponent(tappySearch)}`);
+        const res = await fetch(`/api/tappytoon/search?q=${encodeURIComponent(query)}`);
         const data = await res.json();
+        if (!active) return;
+        if (data.error) throw new Error(data.error);
         setTappyResults(data.results || []);
+        setTappyActive(0);
       } catch {
+        if (!active) return;
         setTappyResults([]);
+        setTappyError("검색에 실패했어요. 잠시 후 다시 시도해 주세요.");
       } finally {
-        setTappyLoading(false);
+        if (active) setTappyLoading(false);
       }
     }, 300);
-    return () => clearTimeout(timer);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
   }, [tappySearch]);
 
-  const selectTappyResult = async (result: SearchResult) => {
+  // 키보드로 옮긴 항목이 목록 밖에 있으면 보이도록 스크롤합니다.
+  useEffect(() => {
+    itemRefs.current[tappyActive]?.scrollIntoView({ block: "nearest" });
+  }, [tappyActive]);
+
+  const selectTappyResult = (result: SearchResult) => {
     setTappyOpen(false);
     setTappySearch(result.title);
-    setTappyLoading(true);
-    try {
-      const res = await fetch(`/api/tappytoon/book?slug=${result.slug}`);
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      setTitle(data.title);
-      setThumbnail(null);
-      setExternalThumbnailUrl(data.thumbnailUrl);
-      setThumbnailPreview(data.thumbnailUrl);
-    } catch (err: any) {
-      setError(err.message || "작품 정보를 불러오지 못했어요");
-    } finally {
-      setTappyLoading(false);
+    setImportedFrom(result);
+    setTitle(result.title);
+    setThumbnail(null);
+    setExternalThumbnailUrl(result.thumbnailUrl);
+    setThumbnailPreview(result.thumbnailUrl);
+    setError("");
+  };
+
+  const clearImported = () => {
+    setImportedFrom(null);
+    setTappySearch("");
+    setTappyResults([]);
+    setTitle("");
+    // 직접 올린 이미지가 있으면 남겨두고 Tappytoon 표지만 지웁니다.
+    if (!thumbnail) {
+      setExternalThumbnailUrl(null);
+      setThumbnailPreview(null);
+    }
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape") {
+      setTappyOpen(false);
+      return;
+    }
+    if (!tappyOpen || tappyResults.length === 0) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setTappyActive((i) => (i + 1) % tappyResults.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setTappyActive((i) => (i - 1 + tappyResults.length) % tappyResults.length);
+    } else if (e.key === "Enter") {
+      // 입력창이 form 안에 있어서 막지 않으면 폼이 제출됩니다.
+      e.preventDefault();
+      const target = tappyResults[tappyActive];
+      if (target) selectTappyResult(target);
     }
   };
 
@@ -147,25 +203,88 @@ export default function AddWebtoonModal({ onClose, onSuccess }: Props) {
               }}
               onFocus={() => setTappyOpen(true)}
               onBlur={() => setTimeout(() => setTappyOpen(false), 150)}
-              placeholder="작품명으로 검색…"
+              onKeyDown={handleSearchKeyDown}
+              placeholder="영문 작품명으로 검색… (예: solo leveling)"
+              role="combobox"
+              aria-expanded={tappyOpen}
+              aria-autocomplete="list"
               className="w-full px-3 py-2.5 border border-border rounded-lg text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition"
             />
-            {tappyOpen && (tappyLoading || tappyResults.length > 0) && (
-              <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-border rounded-lg shadow-md z-10 overflow-hidden max-h-56 overflow-y-auto">
-                {tappyLoading && (
-                  <p className="px-3 py-2 text-xs text-ink-faint">검색 중…</p>
+
+            {tappyOpen && tappySearch.trim().length > 0 && (
+              <div
+                role="listbox"
+                className="absolute left-0 right-0 top-full mt-1 bg-white border border-border rounded-lg shadow-md z-10 overflow-hidden max-h-64 overflow-y-auto"
+              >
+                {tappyLoading ? (
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="flex items-center gap-2.5 px-2.5 py-2 animate-pulse">
+                      <div className="w-8 h-11 rounded bg-surface-2 shrink-0" />
+                      <div className="h-3 bg-surface-2 rounded flex-1" />
+                    </div>
+                  ))
+                ) : tappyError ? (
+                  <p className="px-3 py-2.5 text-xs text-ink-muted">{tappyError}</p>
+                ) : tappyResults.length === 0 ? (
+                  <div className="px-3 py-2.5">
+                    <p className="text-xs text-ink-muted">검색 결과가 없어요</p>
+                    <p className="text-xs text-ink-faint mt-0.5">
+                      Tappytoon 공식 사이트가 영문 기준이라 영문 작품명으로 검색해 주세요
+                    </p>
+                  </div>
+                ) : (
+                  tappyResults.map((r, i) => {
+                    const added = registered.has(normalize(r.title));
+                    return (
+                      <button
+                        key={r.slug}
+                        ref={(el) => {
+                          itemRefs.current[i] = el;
+                        }}
+                        type="button"
+                        role="option"
+                        aria-selected={i === tappyActive}
+                        onMouseDown={() => selectTappyResult(r)}
+                        onMouseEnter={() => setTappyActive(i)}
+                        className={`w-full flex items-center gap-2.5 px-2.5 py-2 text-left transition-colors ${
+                          i === tappyActive ? "bg-surface-2" : "bg-white"
+                        }`}
+                      >
+                        {r.thumbnailUrl ? (
+                          <img
+                            src={r.thumbnailUrl}
+                            alt=""
+                            loading="lazy"
+                            className="w-8 h-11 object-cover rounded shrink-0 bg-surface-2"
+                          />
+                        ) : (
+                          <div className="w-8 h-11 rounded bg-surface-2 flex items-center justify-center text-sm shrink-0">
+                            📖
+                          </div>
+                        )}
+                        <span className="flex-1 text-sm text-ink line-clamp-2">{r.title}</span>
+                        {added && (
+                          <span className="shrink-0 text-[10px] font-semibold text-ink-faint bg-surface-2 border border-border rounded-full px-1.5 py-0.5">
+                            등록됨
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })
                 )}
-                {!tappyLoading &&
-                  tappyResults.map((r) => (
-                    <button
-                      key={r.slug}
-                      type="button"
-                      onMouseDown={() => selectTappyResult(r)}
-                      className="w-full text-left px-3 py-2 text-sm text-ink hover:bg-surface-2 transition-colors"
-                    >
-                      {r.title}
-                    </button>
-                  ))}
+              </div>
+            )}
+
+            {importedFrom && (
+              <div className="flex items-center gap-2 mt-1.5">
+                <span className="text-xs font-medium text-accent">✓ Tappytoon에서 가져옴</span>
+                <button
+                  type="button"
+                  onClick={clearImported}
+                  className="text-xs text-ink-faint hover:text-accent underline transition-colors"
+                >
+                  해제
+                </button>
               </div>
             )}
           </div>
@@ -182,6 +301,11 @@ export default function AddWebtoonModal({ onClose, onSuccess }: Props) {
               placeholder="예: 나 혼자만 레벨업"
               className="w-full px-3 py-2.5 border border-border rounded-lg text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition"
             />
+            {isDuplicate && (
+              <p className="text-xs text-ink-muted bg-surface-2 border border-border rounded-lg px-3 py-2 mt-1.5">
+                같은 이름의 작품이 이미 등록되어 있어요. 그대로 등록하면 목록에 두 개가 보입니다.
+              </p>
+            )}
           </div>
 
           {/* 썸네일 */}

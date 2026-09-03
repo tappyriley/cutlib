@@ -90,20 +90,24 @@ app/
   page.tsx                      작품 목록
   webtoon/[id]/page.tsx         작품 상세 (컷 갤러리)
   api/tappytoon/search/route.ts Tappytoon 작품 검색
-  api/tappytoon/book/route.ts   Tappytoon 작품 메타데이터 조회
 components/
   AddWebtoonModal.tsx           작품 추가 모달
   UploadCutModal.tsx            컷 업로드 모달
   CutCard.tsx                   컷 카드
   Lightbox.tsx                  컷 상세 뷰어 + 댓글
 lib/supabase.ts                 Supabase 클라이언트, 업로드/다운로드 헬퍼, 픽 저장
+lib/tappytoon.ts                Tappytoon 카탈로그 · 메타데이터 조회, 검색 랭킹
 supabase/schema.sql             테이블 · 인덱스 · RLS 정책
 types/index.ts                  공용 타입
 ```
 
 ## Tappytoon 작품 검색
 
-작품 추가 시 쓰이는 검색은 Tappytoon 공식 사이트의 공개 데이터를 이용합니다. 검색엔진용 공개 사이트맵(`sitemap-series.xml`)에서 작품 목록을 받아 매칭하고, 선택한 작품의 페이지에서 `og:title`·`og:image` 메타태그를 읽어 제목과 표지를 채웁니다. 사이트맵은 서버에서 24시간 캐시합니다.
+작품 추가 시 쓰이는 검색은 Tappytoon 공식 사이트의 공개 데이터를 이용합니다. 검색엔진용 공개 사이트맵(`sitemap-series.xml`)에서 작품 목록을 받아 검색어와 매칭하고, 상위 결과 각각의 작품 페이지에서 `og:title`·`og:image` 메타태그를 읽어 제목과 표지를 가져옵니다. 그래서 드롭다운에서 표지를 보고 고를 수 있고, 선택하면 추가 요청 없이 바로 채워집니다.
+
+작품 페이지는 366KB쯤 되지만 `og:` 태그는 앞부분 10KB 안에 있습니다. 그래서 페이지 전체를 받지 않고 응답 스트림을 앞에서부터 읽다가 태그를 찾으면 바로 끊습니다. 서버 런타임에서 측정하면 작품당 16KB만 받으며, 6개를 동시에 조회하는 데 약 1초가 걸립니다.
+
+사이트맵(영문 작품 약 1,500개)과 한 번 읽은 작품 메타데이터는 서버 메모리에 캐시하므로, 같은 작품이 다시 검색되면 추가 요청이 없습니다.
 
 표지 이미지는 다시 업로드하지 않고 Tappytoon CDN 주소를 그대로 저장합니다.
 

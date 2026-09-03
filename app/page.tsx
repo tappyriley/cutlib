@@ -164,6 +164,7 @@ export default function HomePage() {
 
       {showAdd && (
         <AddWebtoonModal
+          existingTitles={webtoons.map((w) => w.title)}
           onClose={() => setShowAdd(false)}
           onSuccess={() => {
             setShowAdd(false);
