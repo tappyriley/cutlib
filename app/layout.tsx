@@ -1,7 +1,16 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
+// og:image / twitter:image 를 절대 URL로 만들기 위해 필요합니다.
+// 커스텀 도메인을 연결했다면 Vercel에 NEXT_PUBLIC_SITE_URL을 등록해서 덮어쓰세요.
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+  ? process.env.NEXT_PUBLIC_SITE_URL
+  : process.env.VERCEL_URL
+  ? `https://${process.env.VERCEL_URL}`
+  : "http://localhost:3000";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: "컷 아카이브",
   description: "Tappytoon 이벤트 컷 모음 라이브러리",
 };

@@ -119,6 +119,14 @@ types/index.ts                  공용 타입
 
 PR을 올리면 Preview 배포도 생성됩니다. Preview 배포가 계속 실패하는 경우, 환경변수가 Production 환경에만 등록되어 있고 Preview 환경에는 빠져 있는지 확인해 보세요 (Vercel → Settings → Environment Variables).
 
+## 브랜드
+
+파비콘(`app/icon.png`, `app/apple-icon.png`)과 카카오톡·슬랙 공유 시 뜨는 미리보기 이미지(`app/opengraph-image.png`)는 Next.js가 파일 위치만으로 자동 인식하는 컨벤션입니다. 바꾸고 싶으면 해당 파일을 새 이미지로 교체하면 됩니다.
+
+메인 컬러(`#0BCC99`)와 텍스트/보더 계열 무채색 톤은 Tappytoon 공식 사이트(tappytoon.com)와 맞췄습니다. `tailwind.config.ts`의 `accent`/`ink`/`border`/`surface` 토큰을 통해서만 색을 쓰면 이 통일성이 유지됩니다.
+
+배포 URL을 아직 모르는 상태에서도 og:image가 항상 올바른 절대경로를 갖도록, `app/layout.tsx`가 `VERCEL_URL`(Vercel이 배포마다 자동으로 주입)을 기본값으로 씁니다. 커스텀 도메인을 연결했다면 Vercel 환경변수에 `NEXT_PUBLIC_SITE_URL`을 추가해서 덮어쓰세요.
+
 ## 알아두어야 할 점
 
 - **인증이 없습니다.** RLS 정책이 모든 테이블에 대해 누구나 읽기·쓰기·삭제할 수 있도록 열려 있습니다. 링크를 아는 사람은 컷과 작품을 삭제할 수도 있으니, 주소 공유 범위를 팀 내부로 관리해 주세요.
