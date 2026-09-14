@@ -119,6 +119,8 @@ types/index.ts                  공용 타입
 
 PR을 올리면 Preview 배포도 생성됩니다. Preview 배포가 계속 실패하는 경우, 환경변수가 Production 환경에만 등록되어 있고 Preview 환경에는 빠져 있는지 확인해 보세요 (Vercel → Settings → Environment Variables).
 
+**Supabase 자동 정지 방지**: 무료 플랜은 7일간 DB 활동이 없으면 프로젝트를 자동으로 일시정지합니다. `vercel.json`에 등록된 Cron이 3일마다 `/api/cron/keep-alive`를 호출해서 가벼운 조회로 활동을 만들어 정지를 막습니다 (Vercel Cron은 Production 배포에서만 동작합니다). 외부에서 함부로 호출하지 못하게 막고 싶으면 Vercel 환경변수에 `CRON_SECRET`을 추가하세요 — Vercel Cron이 자동으로 같은 값을 요청 헤더에 실어 보냅니다.
+
 ## 브랜드
 
 파비콘(`app/icon.png`, `app/apple-icon.png`)과 카카오톡·슬랙 공유 시 뜨는 미리보기 이미지(`app/opengraph-image.png`)는 Next.js가 파일 위치만으로 자동 인식하는 컨벤션입니다. 바꾸고 싶으면 해당 파일을 새 이미지로 교체하면 됩니다.
